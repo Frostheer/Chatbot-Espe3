@@ -93,11 +93,10 @@ def main():
     retriever = Retriever()
 
     if args.batch:
-        # Aquí se integrará el módulo de evaluación (H6)
-        print("Modo Batch: Ejecutando evaluación del Gold Set (necesitas implementar eval/evaluate.py)")
-        # from eval.evaluate import run_evaluation
-        # run_evaluation(retriever, args.k)
-        pass # Placeholder
+        from eval.evaluate import run_evaluation
+        print("Modo Batch: Ejecutando evaluación del Gold Set (eval/gold_set.jsonl)")
+        run_evaluation(retriever, k=args.k, out_dir="eval")
+        return
     else:
         cli_interactive(retriever, args.provider, args.k)
 
