@@ -10,6 +10,13 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
+# Intentar importar matplotlib solo si está disponible
+try:
+    import matplotlib.pyplot as plt
+    MATPLOTLIB_AVAILABLE = True
+except Exception:
+    MATPLOTLIB_AVAILABLE = False
+
 try:
     from providers.chatgpt import ChatGPTProvider
     from providers.deepseek import DeepSeekProvider
@@ -30,7 +37,7 @@ RESULTS_CSV = OUT_DIR / "results_detailed.csv"
 SUMMARY_CSV = OUT_DIR / "results_summary.csv"
 
 EMBED_MODEL = os.getenv("EVAL_EMBEDDING_MODEL", "all-MiniLM-L6-v2")
-OPENAI_RATE_PER_1K = float(os.getenv("OPENAI_RATE_PER_1K", "0.002"))    
+OPENAI_RATE_PER_1K = float(os.getenv("OPENAI_RATE_PER_1K", "0.002"))
 DEEPSEEK_RATE_PER_1K = float(os.getenv("DEEPSEEK_RATE_PER_1K", "0.0015"))
 
 ABSTENTION_PHRASES = ["no encontrado en normativa ufro", "no puedo encontrar", "no hay evidencia", "no se encontró"]
@@ -78,7 +85,6 @@ def compute_precision_at_k(retrieved_items: List[Any], expected_refs: List[str],
     for item in retrieved_items[:k]:
         content = ""
         if isinstance(item, dict):
-            # metadata common fields
             for key in ("metadata", "source", "doc_id", "title", "text"):
                 if key in item and item[key]:
                     content += " " + str(item[key])
@@ -97,7 +103,6 @@ def estimate_tokens(text: str, model_name: str = "gpt-3.5-turbo") -> int:
         except Exception:
             enc = tiktoken.get_encoding("cl100k_base")
         return len(enc.encode(text))
-    # Fallback heuristics: average 0.75 words per token
     words = len(text.split())
     return int(max(1, words / 0.75))
 
@@ -106,22 +111,17 @@ def cost_from_tokens(tokens: int, provider: str) -> float:
     return tokens / 1000.0 * rate
 
 def call_provider(provider_instance, messages: List[Dict[str, str]]) -> Tuple[str, float, int]:
-    """Llama al provider y devuelve (text, latency_s, tokens_estimated)."""
     start = time.time()
     try:
         resp = provider_instance.chat(messages)
     except TypeError:
-        # algunos adapters pueden usar otra firma
         resp = provider_instance.chat(messages=messages)
     latency = time.time() - start
 
-    # extraer texto
     if isinstance(resp, dict):
-        # manejar distintas formas de respuesta
         if "content" in resp:
             text = resp["content"]
         elif "choices" in resp and resp["choices"]:
-            # openai-like
             ch = resp["choices"][0]
             if isinstance(ch, dict) and "message" in ch and "content" in ch["message"]:
                 text = ch["message"]["content"]
@@ -132,7 +132,6 @@ def call_provider(provider_instance, messages: List[Dict[str, str]]) -> Tuple[st
     else:
         text = str(resp)
 
-    # tokens: contar prompt + response
     prompt_text = " ".join([m.get("content", "") for m in messages])
     tokens = estimate_tokens(prompt_text + "\n" + text)
     return text, latency, tokens
@@ -143,21 +142,27 @@ def build_messages_simple(context: str, question: str) -> List[Dict[str,str]]:
     return [system, user]
 
 def run_evaluation(retriever, k: int = 5, out_dir: str = "eval"):
-    gold = load_gold(Path(out_dir) / "gold_set.jsonl")
+    gold_path = Path(out_dir) / "gold_set.jsonl"
+    if not gold_path.exists():
+        print(f"Gold set no encontrado en {gold_path}")
+        return
+    gold = load_gold(gold_path)
     model = SentenceTransformer(EMBED_MODEL)
 
     providers = []
-#    if ChatGPTProvider:
-  #      providers.append(("ChatGPT", ChatGPTProvider()))
+    #if ChatGPTProvider:
+    #    providers.append(("ChatGPT", ChatGPTProvider()))
     if DeepSeekProvider:
         providers.append(("DeepSeek", DeepSeekProvider()))
     if not providers:
         print("No se encontraron providers importables. Asegura providers/chatgpt.py y providers/deepseek.py")
         return
 
+    # Inicializar estructuras de resultados
     rows = []
     summary = {}
-    # OOD questions for robustness check (pueden editarse)
+
+    # OOD questions para robustez
     ood_questions = [
         "¿Cuál es el clima habitual en Temuco en marzo?",
         "¿Cómo reiniciar un servidor Linux?",
@@ -165,13 +170,13 @@ def run_evaluation(retriever, k: int = 5, out_dir: str = "eval"):
     ]
     ood_results = {pname: {"total": 0, "abstained": 0} for pname, _ in providers}
 
+    # Evaluación principal
     for item in gold:
         qid = item.get("id")
         question = item["question"]
         expected_answer = item.get("expected_answer", "")
         expected_refs = item.get("expected_refs", [])
 
-        # Recuperación
         t0 = time.time()
         try:
             retrieved = retriever.retrieve(question, k=k)
@@ -179,7 +184,6 @@ def run_evaluation(retriever, k: int = 5, out_dir: str = "eval"):
             retrieved = retriever.retrieve(question, k)
         retrieve_latency = time.time() - t0
 
-        # Normalizar formato returned por retriever
         retrieved_items = []
         if isinstance(retrieved, tuple) and len(retrieved) == 2:
             scores, texts = retrieved
@@ -203,7 +207,6 @@ def run_evaluation(retriever, k: int = 5, out_dir: str = "eval"):
             resp_text, llm_latency, tokens = call_provider(pinst, messages)
             total_latency = retrieve_latency + llm_latency
             em = int(normalize_text(resp_text) == normalize_text(expected_answer))
-            # similarity
             try:
                 vecs = model.encode([expected_answer or "", resp_text])
                 sim = float(cosine_similarity([vecs[0]], [vecs[1]])[0][0]) if len(vecs) >= 2 else 0.0
@@ -211,13 +214,10 @@ def run_evaluation(retriever, k: int = 5, out_dir: str = "eval"):
                 sim = 0.0
             coverage = int(has_expected_ref_in_text(resp_text, expected_refs) or detect_citation(resp_text))
             p_at_k = compute_precision_at_k(retrieved_items, expected_refs, k)
-
             cost = cost_from_tokens(tokens, pname)
-
             possible_hallucination = 1 if (coverage == 0 and len(resp_text.split()) > 15) else 0
             abstained = any(phrase in resp_text.lower() for phrase in ABSTENTION_PHRASES)
 
-            # append row
             rows.append({
                 "question_id": qid,
                 "provider": pname,
@@ -236,8 +236,7 @@ def run_evaluation(retriever, k: int = 5, out_dir: str = "eval"):
                 "abstained": int(abstained),
                 "response_excerpt": resp_text[:300].replace("\n", " ")
             })
-            # acumular en resumen
-            key = (pname,)
+
             if pname not in summary:
                 summary[pname] = {
                     "queries": 0, "em_sum": 0, "sim_sum": 0.0, "cov_sum": 0, "p_at_k_sum": 0.0,
@@ -256,9 +255,8 @@ def run_evaluation(retriever, k: int = 5, out_dir: str = "eval"):
             s["hallucinations"] += possible_hallucination
             s["abstentions"] += int(abstained)
 
-    # corrida OOD simple (ver H8)
+    # corrida OOD simple (H8)
     for q in ood_questions:
-        t0 = time.time()
         try:
             retrieved = retriever.retrieve(q, k=k)
         except Exception:
@@ -272,8 +270,12 @@ def run_evaluation(retriever, k: int = 5, out_dir: str = "eval"):
                 ood_results[pname]["abstained"] += 1
 
     # Guardar filas detalladas
+    if rows:
+        fieldnames = list(rows[0].keys())
+    else:
+        fieldnames = ["question_id","provider","question","expected_refs","em","similarity","coverage","precision_at_k","retrieve_latency_s","llm_latency_s","total_latency_s","tokens_est","cost_usd","possible_hallucination","abstained","response_excerpt"]
+
     with open(OUT_DIR / "results_detailed.csv", "w", newline="", encoding="utf-8") as f:
-        fieldnames = list(rows[0].keys()) if rows else ["question_id","provider","question","expected_refs","em","similarity","coverage","precision_at_k","retrieve_latency_s","llm_latency_s","total_latency_s","tokens_est","cost_usd","possible_hallucination","abstained","response_excerpt"]
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for r in rows:
@@ -308,5 +310,31 @@ def run_evaluation(retriever, k: int = 5, out_dir: str = "eval"):
     # Guardar OOD resultados
     with open(OUT_DIR / "ood_results.json", "w", encoding="utf-8") as f:
         json.dump(ood_results, f, indent=2, ensure_ascii=False)
+
+    # Generar gráfico comparativo si hay datos y matplotlib está disponible
+    if not rows:
+        print("No hay resultados para graficar. Se omite generación de gráficos.")
+    elif not MATPLOTLIB_AVAILABLE:
+        print("matplotlib no encontrado: se omite generación de gráficos (instalar 'matplotlib' para habilitar).")
+    else:
+        try:
+            providers_list = [r["provider"] for r in summary_rows]
+            avg_latency = [float(r["avg_retrieve_latency_s"])+float(r["avg_llm_latency_s"]) for r in summary_rows]
+            cite_rate = [float(r["coverage_rate"]) for r in summary_rows]
+
+            fig, ax1 = plt.subplots(figsize=(6,4))
+            ax1.bar(providers_list, avg_latency, color='C0', alpha=0.7)
+            ax1.set_ylabel('Latencia media (s)', color='C0')
+            ax2 = ax1.twinx()
+            ax2.plot(providers_list, cite_rate, color='C1', marker='o')
+            ax2.set_ylabel('Tasa de respuestas con cita', color='C1')
+            plt.title('Comparativa ChatGPT vs DeepSeek')
+            plt.tight_layout()
+            plot_path = Path(out_dir) / "comparison_plot.png"
+            fig.savefig(plot_path)
+            plt.close(fig)
+            print(f"Gráfico comparativo guardado en: {plot_path}")
+        except Exception as e:
+            print("No fue posible generar el gráfico comparativo:", e)
 
     print(f"Evaluación completada. Detalles en {OUT_DIR.resolve()}")

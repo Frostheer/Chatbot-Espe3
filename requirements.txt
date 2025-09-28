@@ -5,4 +5,6 @@ pandas
 pyarrow               
 tqdm                   
 openai                   
-python-dotenv             
+python-dotenv
+matplotlib
+scikit-learn              

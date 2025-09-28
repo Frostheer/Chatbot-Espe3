@@ -9,6 +9,23 @@ from providers.base import Provider
 # Cargar variables de entorno
 load_dotenv()
 
+def has_evidence(response_text: str) -> bool:
+    """Heurística simple para detectar citas/evidencia en la respuesta."""
+    if not response_text:
+        return False
+    patterns = [
+        r'https?://',           # links
+        r'\[.+?\]',             # [Documento, sección]
+        r'\b(pág|página|pag)\b',  # pag. 12 / página 3
+        r'\bPágina\b', 
+        r'Ref(erencia)?[:\-]', 
+        r'Doc(?:umento)?[:\-]'
+    ]
+    for p in patterns:
+        if re.search(p, response_text, re.IGNORECASE):
+            return True
+    return False
+
 def run_rag_query(provider: Provider, retriever: Retriever, query: str, k: int):
     """Ejecuta el flujo completo RAG para un proveedor y query."""
     print(f"\n--- 🤖 {provider.name} - Procesando Consulta ---")
@@ -31,6 +48,15 @@ def run_rag_query(provider: Provider, retriever: Retriever, query: str, k: int):
     
     # Usar el adapter del proveedor
     response = provider.chat(messages)
+    
+    if not has_evidence(response):
+        abst_msg = ("No encontrado en normativa UFRO. No hay evidencia en los documentos recuperados. "
+                    "Consulte la unidad correspondiente (Secretaría Académica / Dirección de Estudios).")
+        print("\n" + "="*50)
+        print(f"💬 Respuesta del Asistente ({provider.name}) — Abstención forzada:")
+        print(abst_msg)
+        print("="*50 + "\n")
+        return
 
     # 3. Mostrar Resultado
     print("\n" + "="*50)
