@@ -12,7 +12,7 @@ def get_pdf_text(filepath: str) -> str:
         text += page.extract_text() + "\n\n"
     return text
 
-def chunk_text(text: str, doc_metadata: Dict[str, Any], chunk_size: int = 900, chunk_overlap: int = 120) -> List[Dict[str, Any]]:
+def chunk_text(text: str, doc_metadata: dict[str, any], chunk_size: int = 900, chunk_overlap: int = 120) -> list[dict[str, any]]:
     """Divide el texto en chunks con solapamiento y metadatos."""
     # Nota: Usar un tokenizer real (ej. tiktoken) para medir el tamaño en tokens es mejor,
     # pero aquí usaremos una aproximación simple basada en caracteres/palabras.
@@ -37,7 +37,7 @@ def chunk_text(text: str, doc_metadata: Dict[str, Any], chunk_size: int = 900, c
             # Nota: para la página exacta, necesitarías un parseo más sofisticado. 
             # Aquí solo indicaremos el inicio del chunk.
             "page_approx": doc_metadata.get("page", 1), 
-            "vigencia": doc_metadata["vigencia"],
+            "vigencia": doc_metadata["effective_date"],
         }
         chunks.append(chunk)
         

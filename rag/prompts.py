@@ -19,7 +19,7 @@ Si la información relevante no se encuentra **explícitamente** en el contexto 
 Instrucciones finales: Responde a la pregunta del usuario. Mantén un tono formal y profesional.
 """
 
-def build_messages(context: str, query: str) -> List[Dict[str, str]]:
+def build_messages(context: str, query: str) -> list[dict[str, str]]:
     """Construye el formato de mensajes para la API."""
     system_content = SYSTEM_PROMPT.format(context=context)
     return [
