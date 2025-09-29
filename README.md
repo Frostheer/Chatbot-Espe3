@@ -15,7 +15,6 @@ Este proyecto implementa un asistente conversacional (chatbot) basado en RAG (Re
 
 ```
 .env
-.env.example
 app.py
 requirements.txt
 providers/

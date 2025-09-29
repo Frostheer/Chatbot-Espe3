@@ -106,7 +106,6 @@ def main():
         default=5,
         help="Número de documentos (chunks) a recuperar (top-k)."
     )
-    # Tarea H6/H9: Modo Batch para evaluación
     parser.add_argument(
         "--batch",
         action="store_true",
