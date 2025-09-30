@@ -6,9 +6,10 @@ from .base import Provider
 class ChatGPTProvider(Provider):
     """Adapter para la API de OpenAI (ChatGPT)."""
     
-    def __init__(self, model: str = "gpt-3.5-turbo"):
+    def __init__(self, model: str = "openai/gpt-4.1-mini"):
         # La clave se lee automáticamente de la variable OPENAI_API_KEY
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.client = OpenAI(api_key=os.getenv("CHATGPT_API_KEY"),
+                             base_url="https://openrouter.ai/api/v1/")
         self._model = model
 
     @property

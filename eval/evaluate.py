@@ -150,8 +150,8 @@ def run_evaluation(retriever, k: int = 5, out_dir: str = "eval"):
     model = SentenceTransformer(EMBED_MODEL)
 
     providers = []
-    #if ChatGPTProvider:
-    #    providers.append(("ChatGPT", ChatGPTProvider()))
+    if ChatGPTProvider:
+        providers.append(("ChatGPT", ChatGPTProvider()))
     if DeepSeekProvider:
         providers.append(("DeepSeek", DeepSeekProvider()))
     if not providers:

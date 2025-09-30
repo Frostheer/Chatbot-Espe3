@@ -5,6 +5,7 @@ from providers.deepseek import DeepSeekProvider
 from rag.retrieve import Retriever
 from rag.prompts import build_messages
 from providers.base import Provider
+import re
 
 # Cargar variables de entorno
 load_dotenv()
@@ -103,7 +104,7 @@ def main():
     parser.add_argument(
         "-k",
         type=int,
-        default=5,
+        default=100,
         help="Número de documentos (chunks) a recuperar (top-k)."
     )
     parser.add_argument(

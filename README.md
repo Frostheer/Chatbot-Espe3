@@ -88,6 +88,8 @@ scripts/
    python app.py --batch -k 5
    ```
 
+> **Advertencia:** Se recomienda no usar valores de `k` mayores a **1000**, ya que algunos modelos LLM no soportan tanto contexto y pueden fallar o devolver respuestas incompletas.
+
 ## Evaluación
 
 El módulo `eval/` contiene el gold set y scripts de evaluación. El modo batch calcula métricas básicas (Exact Match, cobertura de citas, Prec@k, latencia). Recomendado: ejecutar evaluación en ambos proveedores para comparar costos y calidad.

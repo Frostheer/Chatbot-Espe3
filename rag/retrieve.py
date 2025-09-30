@@ -26,7 +26,7 @@ class Retriever:
             self.index = None
             self.chunks_df = None
 
-    def retrieve(self, query: str, k: int = 5) -> Tuple[List[float], List[str]]:
+    def retrieve(self, query: str, k: int = 1000) -> Tuple[List[float], List[str]]:
         """Busca los k chunks más relevantes para la query."""
         if not self.index or self.chunks_df is None:
             return [], []
