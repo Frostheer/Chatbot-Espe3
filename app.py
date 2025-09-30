@@ -28,7 +28,7 @@ except ImportError as e:
 
 # Cargar variables de entorno (claves API)
 load_dotenv()
-API_KEY = os.getenv("CHATGPT_API_KEY") # <-- ¡CLAVE DE API CORREGIDA AQUÍ!
+API_KEY = os.getenv("CHATGPT_API_KEY") 
 
 # Asegúrate de que la clave API esté disponible
 if not API_KEY:
@@ -67,12 +67,10 @@ def initialize_rag():
     
     try:
         # Inicializar el Retriever (carga FAISS y embeddings)
-        # Esto solía estar en tu `main()`
         retriever = Retriever()
         print("Retriever (FAISS/Embeddings) cargado.")
         
-        # Inicializar el Proveedor LLM por defecto
-        # Usamos ChatGPTProvider como proveedor por defecto
+
         provider = ChatGPTProvider() 
         print(f"Proveedor LLM activo: {provider.name}.")
         
@@ -86,16 +84,13 @@ def initialize_rag():
         
     except Exception as e:
         print(f"ERROR FATAL al cargar el sistema RAG: {e}")
-        # AÑADIDO: Imprimir el traceback completo para depuración
         traceback.print_exc(file=sys.stderr)
         RAG_SYSTEM = {"status": "failed", "error": str(e)}
 
-# LLAMADA DE INICIALIZACIÓN: Gunicorn ejecuta esto al iniciar el worker.
 initialize_rag()
 
 
 # --- 2. RUTAS DE FLASK ---
-
 @app.route('/')
 def index():
     """Ruta principal para la interfaz HTML (requiere templates/index.html)."""
@@ -129,7 +124,6 @@ def query():
             return jsonify({"response": abst_msg, "sources": [], "retrieved_chunks": []})
 
         # 2. Extracción de Fuentes Limpias (MOVIDA AQUÍ)
-        # Extrae el título del documento (todo lo que está antes de ': ')
         sources = [ctx.strip().split(': ')[0] for ctx in context_list]
         
         # 3. Generación (Generate)
@@ -149,11 +143,10 @@ def query():
         return jsonify({
             "response": response_text,
             "sources": sources,
-            "retrieved_chunks": context_list # <-- Muestra los fragmentos para depuración
+            "retrieved_chunks": context_list
         })
 
     except Exception as e:
-        # AÑADIDO: Registrar errores detallados en la ruta /query también
         print(f"Error en la consulta: {e}")
         traceback.print_exc(file=sys.stderr)
         return jsonify({"error": f"Ocurrió un error interno: {str(e)}"}), 500

@@ -4,7 +4,4 @@
 __pycache__/
 *.pyc
 *.pyo
-
-data/processed/      
-data/index.faiss    
-
+ 
