@@ -7,8 +7,8 @@ class ChatGPTProvider(Provider):
     """Adapter para la API de OpenAI (ChatGPT)."""
     
     def __init__(self, model: str = "gpt-3.5-turbo"):
-        # La clave se lee automáticamente de la variable OPENAI_API_KEY
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        # La clave se lee automáticamente de la variable CHATGPT_API_KEY
+        self.client = OpenAI(api_key=os.getenv("CHATGPT_API_KEY"))
         self._model = model
 
     @property
@@ -20,7 +20,7 @@ class ChatGPTProvider(Provider):
             response = self.client.chat.completions.create(
                 model=self._model,
                 messages=messages,
-                temperature=kwargs.get("temperature", 0.1),
+                temperature=kwargs.get("temperature", 0.4),
             )
             return response.choices[0].message.content
         except Exception as e:
