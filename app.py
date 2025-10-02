@@ -447,7 +447,7 @@ def query():
         log_with_timestamp(f"Procesando consulta: '{user_prompt[:100]}...'")
         
         retriever = RAG_SYSTEM['retriever']
-        providers = RAG_SYSTEM['providers']  # Cambiado: ahora obtenemos el diccionario
+        providers = RAG_SYSTEM['providers']  
 
         # 1. Recuperación de Contexto (Retrieve)
         log_with_timestamp(f"🔍 Recuperando contexto (k={k})...")
@@ -536,7 +536,7 @@ if __name__ == "__main__":
     log_with_timestamp("="*70)
     
     try:
-        app.run(debug=True, host='0.0.0.0', port=5000)
+        app.run(debug=True, host='127.0.0.1', port=5000)
     except KeyboardInterrupt:
         log_with_timestamp("\n\n👋 Servidor detenido por el usuario.")
     except Exception as e:
