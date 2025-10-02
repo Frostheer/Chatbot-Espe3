@@ -1,7 +1,5 @@
-# Dockerfile
-
 # Base: Mantenemos la versión 3.11 para máxima estabilidad con librerías ML
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Establecemos el directorio de trabajo
 WORKDIR /app
