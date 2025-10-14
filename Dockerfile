@@ -26,7 +26,7 @@ COPY .env .env
 COPY data /app/data
 COPY . .
 
-EXPOSE 8080
+EXPOSE 5000
 
 # --- PASO 3: Comando de inicio fijo ---
 # Ejecuta Gunicorn como un módulo de Python para evitar el error "$PATH"
