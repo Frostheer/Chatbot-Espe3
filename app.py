@@ -506,8 +506,13 @@ def query():
 
 # --- BLOQUE PRINCIPAL MEJORADO ---
 
+# ...código existente...
+
+# --- BLOQUE PRINCIPAL CORREGIDO ---
+
 if __name__ == "__main__":
-    log_with_timestamp("\n🚀 INICIANDO CHATBOT RAG - MODO LOCAL/DEBUG")
+    # MODO DESARROLLO LOCAL
+    log_with_timestamp("\n🚀 INICIANDO CHATBOT RAG - MODO DESARROLLO")
     log_with_timestamp("="*70)
     
     # 1. Configuración automática de datos
@@ -527,25 +532,41 @@ if __name__ == "__main__":
         log_with_timestamp(f"   Error: {error_detail}")
         sys.exit(1)
     
-    # 4. Iniciar servidor Flask
-    log_with_timestamp("\n🌐 INICIANDO SERVIDOR FLASK")
+    # 4. Iniciar servidor Flask (DESARROLLO)
+    log_with_timestamp("\n🌐 INICIANDO SERVIDOR FLASK - DESARROLLO")
     log_with_timestamp("="*70)
-    log_with_timestamp("   URL: http://localhost:5000")
+    log_with_timestamp("   URL Local: http://localhost:5000")
+    log_with_timestamp("   URL Red: http://0.0.0.0:5000")
     log_with_timestamp("   Endpoint API: http://localhost:5000/query")
     log_with_timestamp("   Presiona Ctrl+C para detener")
     log_with_timestamp("="*70)
     
     try:
-        app.run(debug=True, host='127.0.0.1', port=5000)
+        app.run(
+            debug=True,           
+            host='0.0.0.0',      
+            port=5000,
+            use_reloader=False   
+        )
     except KeyboardInterrupt:
         log_with_timestamp("\n\n👋 Servidor detenido por el usuario.")
     except Exception as e:
         log_with_timestamp(f"\n❌ Error al iniciar el servidor: {e}", "ERROR")
         sys.exit(1)
+
 else:
-    # Cuando se ejecuta con Gunicorn (producción)
-    log_with_timestamp("🐋 MODO PRODUCCIÓN - GUNICORN")
+    log_with_timestamp("🐋 MODO PRODUCCIÓN - INICIALIZACIÓN")
+    log_with_timestamp("="*70)
+    
     if not auto_setup_data():
         log_with_timestamp("❌ FALLO EN LA PREPARACIÓN DE DATOS EN PRODUCCIÓN", "ERROR")
         sys.exit(1)
+    
     initialize_rag()
+    
+    if not RAG_SYSTEM or RAG_SYSTEM.get("status") != "ready":
+        log_with_timestamp("❌ SISTEMA RAG NO LISTO PARA PRODUCCIÓN", "ERROR")
+        sys.exit(1)
+    
+    log_with_timestamp("✅ Sistema RAG inicializado para producción")
+    log_with_timestamp("🚀 Gunicorn tomará el control del servidor")

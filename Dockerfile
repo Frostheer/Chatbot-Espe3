@@ -26,10 +26,9 @@ COPY .env .env
 COPY data /app/data
 COPY . .
 
-# Puerto interno estándar de Gunicorn (mapearemos 5000:8000 en el 'docker run' local)
-EXPOSE 8000
+EXPOSE 8080
 
 # --- PASO 3: Comando de inicio fijo ---
 # Ejecuta Gunicorn como un módulo de Python para evitar el error "$PATH"
 # Usamos el puerto 8000 y apuntamos a la aplicación 'app' en el archivo 'app_web.py'
-CMD ["python", "-m", "gunicorn", "--workers", "4", "--bind", "0.0.0.0:8000", "app:app"]
+CMD ["python", "-m", "gunicorn", "--workers", "4", "--bind", "0.0.0.0:8080", "app:app"]
